@@ -19,9 +19,10 @@ interface TaskListProps {
   limit?: number;
   tasks: Task[];
   onTaskStatusChange: (taskId: string) => void;
+  onTaskEdit: (task: Task) => void;
 }
 
-const TaskList = ({ limit, tasks, onTaskStatusChange }: TaskListProps) => {
+const TaskList = ({ limit, tasks, onTaskStatusChange, onTaskEdit }: TaskListProps) => {
   const displayedTasks = limit ? tasks.slice(0, limit) : tasks;
 
   return (
@@ -82,7 +83,12 @@ const TaskList = ({ limit, tasks, onTaskStatusChange }: TaskListProps) => {
             </div>
             
             <div className="flex gap-1">
-              <Button variant="ghost" size="icon" className="h-8 w-8">
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="h-8 w-8" 
+                onClick={() => onTaskEdit(task)}
+              >
                 <Edit className="h-4 w-4" />
               </Button>
               

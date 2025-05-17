@@ -1,5 +1,6 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import Layout from "@/components/layouts/Layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,7 +8,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Filter } from "lucide-react";
 import TaskList from "@/components/tasks/TaskList";
 import TaskFormDialog from "@/components/tasks/TaskFormDialog";
+import TaskEditDialog from "@/components/tasks/TaskEditDialog";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Task {
   id: string;
@@ -19,84 +22,167 @@ interface Task {
   assignedTo?: string;
 }
 
+interface SupabaseTask {
+  id: string;
+  title: string;
+  description: string | null;
+  priority: string;
+  due_date: string;
+  completed: boolean;
+  assigned_to: string | null;
+  created_at: string;
+  updated_at: string;
+  user_id: string | null;
+}
+
+// Convert Supabase task to our application Task format
+const mapSupabaseTask = (task: SupabaseTask): Task => ({
+  id: task.id,
+  title: task.title,
+  description: task.description || "",
+  priority: task.priority as "low" | "medium" | "high" | "completed",
+  dueDate: task.due_date,
+  completed: task.completed,
+  assignedTo: task.assigned_to || undefined
+});
+
+// Convert our application Task to Supabase format
+const mapToSupabaseTask = (task: Task): Partial<SupabaseTask> => ({
+  title: task.title,
+  description: task.description || null,
+  priority: task.priority,
+  due_date: task.dueDate,
+  completed: task.completed,
+  assigned_to: task.assignedTo || null
+});
+
 const Tasks = () => {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   
-  const [tasks, setTasks] = useState<Task[]>([
-    {
-      id: "1",
-      title: "Create PRD for new mobile app",
-      description: "Draft the initial product requirements document for the mobile application",
-      priority: "high",
-      dueDate: "2025-05-18",
-      completed: false,
-      assignedTo: "Alex Johnson"
-    },
-    {
-      id: "2",
-      title: "Review team project plan",
-      description: "Review and provide feedback on the quarterly project plan",
-      priority: "medium",
-      dueDate: "2025-05-19",
-      completed: false,
-      assignedTo: "Alex Johnson"
-    },
-    {
-      id: "3",
-      title: "Prepare presentation for stakeholders",
-      description: "Create slides for the monthly stakeholder meeting",
-      priority: "high",
-      dueDate: "2025-05-21",
-      completed: false
-    },
-    {
-      id: "4",
-      title: "Update API documentation",
-      description: "Update the documentation for the new API endpoints",
-      priority: "low",
-      dueDate: "2025-05-22",
-      completed: false
-    },
-    {
-      id: "5",
-      title: "Approve vacation requests",
-      description: "Review and approve team vacation requests for next month",
-      priority: "medium",
-      dueDate: "2025-05-20",
-      completed: false
-    },
-    {
-      id: "6",
-      title: "Install developer tools",
-      description: "Set up local development environment with the latest tools",
-      priority: "completed",
-      dueDate: "2025-05-16",
-      completed: true
-    }
-  ]);
-
   const [activeTab, setActiveTab] = useState("all");
+  const [taskToEdit, setTaskToEdit] = useState<Task | null>(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+
+  // Fetch tasks from Supabase
+  const { data: tasks = [], isLoading } = useQuery({
+    queryKey: ["tasks"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("tasks")
+        .select("*")
+        .order("created_at", { ascending: false });
+      
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      return (data as SupabaseTask[]).map(mapSupabaseTask);
+    }
+  });
+
+  // Create task mutation
+  const createTaskMutation = useMutation({
+    mutationFn: async (newTask: Task) => {
+      const { data, error } = await supabase
+        .from("tasks")
+        .insert(mapToSupabaseTask(newTask))
+        .select("*")
+        .single();
+      
+      if (error) throw new Error(error.message);
+      return mapSupabaseTask(data as SupabaseTask);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["tasks"] });
+    }
+  });
+
+  // Update task mutation
+  const updateTaskMutation = useMutation({
+    mutationFn: async (task: Task) => {
+      const { data, error } = await supabase
+        .from("tasks")
+        .update(mapToSupabaseTask(task))
+        .eq("id", task.id)
+        .select("*")
+        .single();
+      
+      if (error) throw new Error(error.message);
+      return mapSupabaseTask(data as SupabaseTask);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["tasks"] });
+    }
+  });
 
   const handleTaskCreate = (newTask: Task) => {
-    setTasks(prevTasks => [newTask, ...prevTasks]);
-    toast({
-      title: "Task Created",
-      description: `"${newTask.title}" has been added to your tasks`,
+    createTaskMutation.mutate(newTask, {
+      onSuccess: (createdTask) => {
+        toast({
+          title: "Task Created",
+          description: `"${createdTask.title}" has been added to your tasks`,
+        });
+      },
+      onError: (error) => {
+        toast({
+          title: "Error",
+          description: error.message,
+          variant: "destructive"
+        });
+      }
     });
   };
 
   const handleTaskStatusToggle = (taskId: string) => {
-    setTasks(tasks.map(task => {
-      if (task.id === taskId) {
-        const completed = !task.completed;
-        return {
-          ...task,
-          completed,
-          priority: completed ? "completed" : task.priority
-        };
+    const taskToUpdate = tasks.find(task => task.id === taskId);
+    if (!taskToUpdate) return;
+
+    const completed = !taskToUpdate.completed;
+    const updatedTask = {
+      ...taskToUpdate,
+      completed,
+      priority: completed ? "completed" : taskToUpdate.priority
+    };
+
+    updateTaskMutation.mutate(updatedTask, {
+      onSuccess: () => {
+        toast({
+          title: completed ? "Task Completed" : "Task Reopened",
+          description: `"${updatedTask.title}" has been ${completed ? "marked as complete" : "reopened"}`,
+        });
+      },
+      onError: (error) => {
+        toast({
+          title: "Error",
+          description: error.message,
+          variant: "destructive"
+        });
       }
-      return task;
-    }));
+    });
+  };
+
+  const handleTaskEdit = (task: Task) => {
+    setTaskToEdit(task);
+    setEditDialogOpen(true);
+  };
+
+  const handleTaskUpdate = (updatedTask: Task) => {
+    updateTaskMutation.mutate(updatedTask, {
+      onSuccess: () => {
+        toast({
+          title: "Task Updated",
+          description: `"${updatedTask.title}" has been updated`,
+        });
+      },
+      onError: (error) => {
+        toast({
+          title: "Error",
+          description: error.message,
+          variant: "destructive"
+        });
+      }
+    });
   };
 
   const getFilteredTasks = (tabName: string) => {
@@ -150,6 +236,7 @@ const Tasks = () => {
                 <TaskList 
                   tasks={getFilteredTasks("all")}
                   onTaskStatusChange={handleTaskStatusToggle}
+                  onTaskEdit={handleTaskEdit}
                 />
               </CardContent>
             </Card>
@@ -164,6 +251,7 @@ const Tasks = () => {
                 <TaskList 
                   tasks={getFilteredTasks("mine")}
                   onTaskStatusChange={handleTaskStatusToggle}
+                  onTaskEdit={handleTaskEdit}
                 />
               </CardContent>
             </Card>
@@ -178,6 +266,7 @@ const Tasks = () => {
                 <TaskList 
                   tasks={getFilteredTasks("overdue")}
                   onTaskStatusChange={handleTaskStatusToggle}
+                  onTaskEdit={handleTaskEdit}
                 />
               </CardContent>
             </Card>
@@ -192,11 +281,19 @@ const Tasks = () => {
                 <TaskList 
                   tasks={getFilteredTasks("completed")}
                   onTaskStatusChange={handleTaskStatusToggle}
+                  onTaskEdit={handleTaskEdit}
                 />
               </CardContent>
             </Card>
           </TabsContent>
         </Tabs>
+
+        <TaskEditDialog 
+          open={editDialogOpen}
+          onOpenChange={setEditDialogOpen}
+          task={taskToEdit}
+          onTaskUpdated={handleTaskUpdate}
+        />
       </div>
     </Layout>
   );
