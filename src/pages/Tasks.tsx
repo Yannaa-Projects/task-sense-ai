@@ -171,7 +171,9 @@ const Tasks = () => {
 
     const completed = !taskToUpdate.completed;
     const previousPriority = taskToUpdate.priority;
-    const newPriority = completed ? "completed" : previousPriority === "completed" ? "medium" : previousPriority;
+    const newPriority: "low" | "medium" | "high" | "completed" = 
+      completed ? "completed" : 
+      previousPriority === "completed" ? "medium" : previousPriority;
     
     const updatedTask = {
       ...taskToUpdate,
