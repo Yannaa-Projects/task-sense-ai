@@ -14,8 +14,19 @@ import DashboardMetrics from "@/components/dashboard/DashboardMetrics";
 import TaskList from "@/components/tasks/TaskList";
 import { useState } from "react";
 
+// Define Task interface matching the one in TaskList.tsx
+interface Task {
+  id: string;
+  title: string;
+  description: string;
+  priority: "low" | "medium" | "high" | "completed";
+  dueDate: string;
+  completed: boolean;
+  assignedTo?: string;
+}
+
 // Sample tasks for the dashboard
-const sampleTasks = [
+const sampleTasks: Task[] = [
   {
     id: "1",
     title: "Create PRD for new mobile app",
