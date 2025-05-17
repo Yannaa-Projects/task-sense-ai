@@ -1,6 +1,6 @@
 
 import { Card, CardContent } from "@/components/ui/card";
-import { CheckCheck, Clock, CalendarDays, AlertCircle } from "lucide-react";
+import { CheckCheck, Clock, CalendarDays, AlertCircle, ListTodo } from "lucide-react";
 
 const DashboardMetrics = () => {
   const metrics = [
