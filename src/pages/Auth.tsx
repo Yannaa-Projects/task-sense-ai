@@ -8,7 +8,6 @@ import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from '@/components/ui/sonner';
 import { Mail, Lock, User } from 'lucide-react';
 
@@ -34,7 +33,7 @@ type SignupFormValues = z.infer<typeof signupSchema>;
 
 const Auth = () => {
   const { isAuthenticated, isLoading, signIn, signUp } = useAuth();
-  const [activeTab, setActiveTab] = useState<string>("login");
+  const [activeView, setActiveView] = useState<string>("login");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Login form
@@ -73,7 +72,7 @@ const Auth = () => {
     try {
       setIsSubmitting(true);
       await signUp(data.email, data.password, data.fullName);
-      setActiveTab("login");
+      setActiveView("login");
     } catch (error) {
       // Error is handled in the auth context
     } finally {
@@ -87,24 +86,24 @@ const Auth = () => {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 px-4">
-      <div className="w-full max-w-md">
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-extrabold tracking-tight bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
-            Nxttask
-          </h1>
-          <p className="text-muted-foreground mt-2">Manage tasks intelligently</p>
-        </div>
+    <div className="h-screen w-full flex overflow-hidden">
+      {/* Left side - Login/Signup Form */}
+      <div className="w-full lg:w-1/2 flex flex-col justify-center items-center px-6 lg:px-16">
+        <div className="w-full max-w-md">
+          {/* Logo/Brand */}
+          <div className="mb-8">
+            <h1 className="text-4xl font-extrabold text-gray-900">Nxttask</h1>
+          </div>
 
-        <div className="bg-white dark:bg-gray-800 p-8 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid grid-cols-2 mb-6">
-              <TabsTrigger value="login">Login</TabsTrigger>
-              <TabsTrigger value="signup">Sign Up</TabsTrigger>
-            </TabsList>
+          {/* Greeting */}
+          <div className="mb-12">
+            <h2 className="text-5xl font-bold text-gray-900 mb-2">Hello!</h2>
+            <p className="text-gray-500">Welcome back to the community</p>
+          </div>
 
-            {/* Login Tab */}
-            <TabsContent value="login">
+          {/* Login View */}
+          {activeView === "login" && (
+            <>
               <Form {...loginForm}>
                 <form onSubmit={loginForm.handleSubmit(onLoginSubmit)} className="space-y-4">
                   <FormField
@@ -112,11 +111,8 @@ const Auth = () => {
                     name="email"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="flex items-center gap-2">
-                          <Mail className="h-4 w-4" /> Email
-                        </FormLabel>
                         <FormControl>
-                          <Input placeholder="your@email.com" {...field} />
+                          <Input placeholder="Email" {...field} className="h-12 text-base" />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -128,30 +124,45 @@ const Auth = () => {
                     name="password"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="flex items-center gap-2">
-                          <Lock className="h-4 w-4" /> Password
-                        </FormLabel>
                         <FormControl>
-                          <Input type="password" placeholder="••••••••" {...field} />
+                          <Input type="password" placeholder="Password" {...field} className="h-12 text-base" />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
                   
+                  <div className="flex justify-end">
+                    <button type="button" className="text-sm text-blue-500 hover:text-blue-700">
+                      Forgot Password?
+                    </button>
+                  </div>
+                  
                   <Button 
                     type="submit" 
-                    className="w-full" 
+                    className="w-full h-12 rounded-full bg-black hover:bg-gray-800"
                     disabled={isSubmitting || isLoading}
                   >
-                    {isSubmitting ? "Logging in..." : "Login"}
+                    {isSubmitting ? "Logging in..." : "Log in"}
                   </Button>
                 </form>
               </Form>
-            </TabsContent>
+              
+              <p className="text-center mt-6">
+                Don't have an account?{" "}
+                <button 
+                  onClick={() => setActiveView("signup")}
+                  className="text-blue-500 hover:text-blue-700"
+                >
+                  Sign up
+                </button>
+              </p>
+            </>
+          )}
 
-            {/* Sign Up Tab */}
-            <TabsContent value="signup">
+          {/* Signup View */}
+          {activeView === "signup" && (
+            <>
               <Form {...signupForm}>
                 <form onSubmit={signupForm.handleSubmit(onSignupSubmit)} className="space-y-4">
                   <FormField
@@ -159,11 +170,8 @@ const Auth = () => {
                     name="fullName"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="flex items-center gap-2">
-                          <User className="h-4 w-4" /> Full Name
-                        </FormLabel>
                         <FormControl>
-                          <Input placeholder="John Doe" {...field} />
+                          <Input placeholder="Full Name" {...field} className="h-12 text-base" />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -175,11 +183,8 @@ const Auth = () => {
                     name="email"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="flex items-center gap-2">
-                          <Mail className="h-4 w-4" /> Email
-                        </FormLabel>
                         <FormControl>
-                          <Input placeholder="your@email.com" {...field} />
+                          <Input placeholder="Email" {...field} className="h-12 text-base" />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -191,11 +196,8 @@ const Auth = () => {
                     name="password"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="flex items-center gap-2">
-                          <Lock className="h-4 w-4" /> Password
-                        </FormLabel>
                         <FormControl>
-                          <Input type="password" placeholder="••••••••" {...field} />
+                          <Input type="password" placeholder="Password" {...field} className="h-12 text-base" />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -207,11 +209,8 @@ const Auth = () => {
                     name="confirmPassword"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="flex items-center gap-2">
-                          <Lock className="h-4 w-4" /> Confirm Password
-                        </FormLabel>
                         <FormControl>
-                          <Input type="password" placeholder="••••••••" {...field} />
+                          <Input type="password" placeholder="Confirm Password" {...field} className="h-12 text-base" />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -220,15 +219,40 @@ const Auth = () => {
                   
                   <Button 
                     type="submit" 
-                    className="w-full" 
+                    className="w-full h-12 rounded-full bg-black hover:bg-gray-800" 
                     disabled={isSubmitting || isLoading}
                   >
                     {isSubmitting ? "Creating Account..." : "Create Account"}
                   </Button>
                 </form>
               </Form>
-            </TabsContent>
-          </Tabs>
+              
+              <p className="text-center mt-6">
+                Already have an account?{" "}
+                <button 
+                  onClick={() => setActiveView("login")}
+                  className="text-blue-500 hover:text-blue-700"
+                >
+                  Log in
+                </button>
+              </p>
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* Right side - Purple Gradient Background */}
+      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-purple-500 to-blue-600 flex-col justify-center px-12 text-white">
+        <div className="absolute top-8 right-8 flex items-center gap-4">
+          <button className="text-white hover:text-white/80">Sign up</button>
+          <Button variant="outline" className="rounded-full border-white text-white hover:bg-white/10 hover:text-white">
+            Join Us
+          </Button>
+        </div>
+        
+        <div>
+          <h2 className="text-4xl font-bold mb-4">Discover the hidden gems of the world, one step at a time.</h2>
+          <p className="opacity-80">Manage tasks intelligently and elevate your productivity with smart features and intuitive design.</p>
         </div>
       </div>
     </div>
