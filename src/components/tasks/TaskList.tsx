@@ -17,139 +17,84 @@ interface Task {
 
 interface TaskListProps {
   limit?: number;
+  tasks: Task[];
+  onTaskStatusChange: (taskId: string) => void;
 }
 
-const TaskList = ({ limit }: TaskListProps) => {
-  const [tasks, setTasks] = useState<Task[]>([
-    {
-      id: "1",
-      title: "Create PRD for new mobile app",
-      description: "Draft the initial product requirements document for the mobile application",
-      priority: "high",
-      dueDate: "2025-05-18",
-      completed: false,
-      assignedTo: "Alex Johnson"
-    },
-    {
-      id: "2",
-      title: "Review team project plan",
-      description: "Review and provide feedback on the quarterly project plan",
-      priority: "medium",
-      dueDate: "2025-05-19",
-      completed: false,
-      assignedTo: "Alex Johnson"
-    },
-    {
-      id: "3",
-      title: "Prepare presentation for stakeholders",
-      description: "Create slides for the monthly stakeholder meeting",
-      priority: "high",
-      dueDate: "2025-05-21",
-      completed: false
-    },
-    {
-      id: "4",
-      title: "Update API documentation",
-      description: "Update the documentation for the new API endpoints",
-      priority: "low",
-      dueDate: "2025-05-22",
-      completed: false
-    },
-    {
-      id: "5",
-      title: "Approve vacation requests",
-      description: "Review and approve team vacation requests for next month",
-      priority: "medium",
-      dueDate: "2025-05-20",
-      completed: false
-    },
-    {
-      id: "6",
-      title: "Install developer tools",
-      description: "Set up local development environment with the latest tools",
-      priority: "completed",
-      dueDate: "2025-05-16",
-      completed: true
-    }
-  ]);
-
-  const toggleTaskStatus = (taskId: string) => {
-    setTasks(tasks.map(task => {
-      if (task.id === taskId) {
-        const completed = !task.completed;
-        return {
-          ...task,
-          completed,
-          priority: completed ? "completed" : task.priority
-        };
-      }
-      return task;
-    }));
-  };
-
+const TaskList = ({ limit, tasks, onTaskStatusChange }: TaskListProps) => {
   const displayedTasks = limit ? tasks.slice(0, limit) : tasks;
 
   return (
     <div className="space-y-3">
-      {displayedTasks.map(task => (
-        <div 
-          key={task.id} 
-          className={cn(
-            "task-card flex items-start gap-4",
-            task.completed && "opacity-70"
-          )}
-        >
-          <Checkbox 
-            checked={task.completed}
-            onCheckedChange={() => toggleTaskStatus(task.id)}
-            className="mt-1"
-          />
-          
-          <div className="flex-1">
-            <div className="flex items-center gap-2 mb-1">
-              <h3 className={cn(
-                "font-medium",
-                task.completed && "line-through text-muted-foreground"
-              )}>
-                {task.title}
-              </h3>
-              <span className={cn(
-                "priority-badge",
-                `priority-${task.priority}`
-              )}>
-                {task.priority === "completed" ? "Completed" : task.priority.charAt(0).toUpperCase() + task.priority.slice(1)}
-              </span>
+      {displayedTasks.length === 0 ? (
+        <div className="text-center py-8 text-muted-foreground">
+          <ListTodo className="mx-auto h-8 w-8 mb-2" />
+          <p>No tasks to display</p>
+        </div>
+      ) : (
+        displayedTasks.map(task => (
+          <div 
+            key={task.id} 
+            className={cn(
+              "task-card flex items-start gap-4 p-4 border rounded-md",
+              task.completed && "opacity-70"
+            )}
+          >
+            <Checkbox 
+              checked={task.completed}
+              onCheckedChange={() => onTaskStatusChange(task.id)}
+              className="mt-1"
+            />
+            
+            <div className="flex-1">
+              <div className="flex items-center gap-2 mb-1">
+                <h3 className={cn(
+                  "font-medium",
+                  task.completed && "line-through text-muted-foreground"
+                )}>
+                  {task.title}
+                </h3>
+                <span className={cn(
+                  "text-xs px-2 py-1 rounded-full",
+                  task.priority === "high" && "bg-red-100 text-red-800",
+                  task.priority === "medium" && "bg-yellow-100 text-yellow-800",
+                  task.priority === "low" && "bg-blue-100 text-blue-800",
+                  task.priority === "completed" && "bg-green-100 text-green-800"
+                )}>
+                  {task.priority === "completed" ? "Completed" : task.priority.charAt(0).toUpperCase() + task.priority.slice(1)}
+                </span>
+              </div>
+              
+              <p className="text-sm text-muted-foreground mb-2">
+                {task.description}
+              </p>
+              
+              <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                <span className="flex items-center gap-1">
+                  <Clock className="h-3 w-3" />
+                  Due: {new Date(task.dueDate).toLocaleDateString()}
+                </span>
+                
+                {task.assignedTo && (
+                  <span>Assigned to: {task.assignedTo}</span>
+                )}
+              </div>
             </div>
             
-            <p className="text-sm text-muted-foreground mb-2">
-              {task.description}
-            </p>
-            
-            <div className="flex items-center gap-4 text-xs text-muted-foreground">
-              <span className="flex items-center gap-1">
-                <Clock className="h-3 w-3" />
-                Due: {new Date(task.dueDate).toLocaleDateString()}
-              </span>
+            <div className="flex gap-1">
+              <Button variant="ghost" size="icon" className="h-8 w-8">
+                <Edit className="h-4 w-4" />
+              </Button>
               
-              {task.assignedTo && (
-                <span>Assigned to: {task.assignedTo}</span>
+              {task.completed && (
+                <Button variant="ghost" size="icon" className="h-8 w-8 text-green-600">
+                  <CheckCheck className="h-4 w-4" />
+                </Button>
               )}
             </div>
           </div>
-          
-          <div className="flex gap-1">
-            <Button variant="ghost" size="icon" className="h-8 w-8">
-              <Edit className="h-4 w-4" />
-            </Button>
-            
-            {task.completed && (
-              <Button variant="ghost" size="icon" className="h-8 w-8 text-green-600">
-                <CheckCheck className="h-4 w-4" />
-              </Button>
-            )}
-          </div>
-        </div>
-      ))}
+        ))
+      )}
     </div>
   );
 };
