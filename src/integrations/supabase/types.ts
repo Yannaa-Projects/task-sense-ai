@@ -39,6 +39,44 @@ export type Database = {
         }
         Relationships: []
       }
+      task_priority_logs: {
+        Row: {
+          created_at: string
+          id: string
+          new_priority: string
+          previous_priority: string
+          task_id: string
+          task_title: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          new_priority: string
+          previous_priority: string
+          task_id: string
+          task_title: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          new_priority?: string
+          previous_priority?: string
+          task_id?: string
+          task_title?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_priority_logs_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tasks: {
         Row: {
           assigned_to: string | null

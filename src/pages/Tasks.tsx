@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import Layout from "@/components/layouts/Layout";
@@ -9,6 +8,7 @@ import { Filter } from "lucide-react";
 import TaskList from "@/components/tasks/TaskList";
 import TaskFormDialog from "@/components/tasks/TaskFormDialog";
 import TaskEditDialog from "@/components/tasks/TaskEditDialog";
+import TaskHistoryDialog from "@/components/tasks/TaskHistoryDialog";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -37,9 +37,9 @@ interface SupabaseTask {
 
 interface PriorityLog {
   task_id: string;
+  task_title: string;
   previous_priority: string;
   new_priority: string;
-  changed_at: string;
 }
 
 // Convert Supabase task to our application Task format
@@ -114,12 +114,7 @@ const Tasks = () => {
 
   // Log priority change mutation
   const logPriorityChangeMutation = useMutation({
-    mutationFn: async (log: {
-      task_id: string;
-      task_title: string;
-      previous_priority: string;
-      new_priority: string;
-    }) => {
+    mutationFn: async (log: PriorityLog) => {
       const { error } = await supabase
         .from("task_priority_logs")
         .insert({
@@ -176,7 +171,7 @@ const Tasks = () => {
 
     const completed = !taskToUpdate.completed;
     const previousPriority = taskToUpdate.priority;
-    const newPriority = completed ? "completed" : previousPriority;
+    const newPriority = completed ? "completed" : previousPriority === "completed" ? "medium" : previousPriority;
     
     const updatedTask = {
       ...taskToUpdate,
