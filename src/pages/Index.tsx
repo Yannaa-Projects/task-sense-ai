@@ -12,8 +12,55 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import DashboardMetrics from "@/components/dashboard/DashboardMetrics";
 import TaskList from "@/components/tasks/TaskList";
+import { useState } from "react";
+
+// Sample tasks for the dashboard
+const sampleTasks = [
+  {
+    id: "1",
+    title: "Create PRD for new mobile app",
+    description: "Draft the initial product requirements document for the mobile application",
+    priority: "high",
+    dueDate: "2025-05-18",
+    completed: false,
+    assignedTo: "Alex Johnson"
+  },
+  {
+    id: "2",
+    title: "Review team project plan",
+    description: "Review and provide feedback on the quarterly project plan",
+    priority: "medium",
+    dueDate: "2025-05-19",
+    completed: false,
+    assignedTo: "Alex Johnson"
+  },
+  {
+    id: "3",
+    title: "Prepare presentation for stakeholders",
+    description: "Create slides for the monthly stakeholder meeting",
+    priority: "high",
+    dueDate: "2025-05-21",
+    completed: false
+  }
+];
 
 const Index = () => {
+  const [tasks, setTasks] = useState(sampleTasks);
+  
+  const handleTaskStatusToggle = (taskId: string) => {
+    setTasks(tasks.map(task => {
+      if (task.id === taskId) {
+        const completed = !task.completed;
+        return {
+          ...task,
+          completed,
+          priority: completed ? "completed" : task.priority
+        };
+      }
+      return task;
+    }));
+  };
+
   return (
     <Layout>
       <div className="space-y-8">
@@ -46,7 +93,11 @@ const Index = () => {
               <Button variant="outline" size="sm">View All</Button>
             </CardHeader>
             <CardContent>
-              <TaskList limit={5} />
+              <TaskList 
+                limit={5} 
+                tasks={tasks}
+                onTaskStatusChange={handleTaskStatusToggle}
+              />
             </CardContent>
           </Card>
           
