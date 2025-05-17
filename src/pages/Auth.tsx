@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -251,8 +250,8 @@ const Auth = () => {
         </div>
         
         <div>
-          <h2 className="text-4xl font-bold mb-4">Discover the hidden gems of the world, one step at a time.</h2>
-          <p className="opacity-80">Manage tasks intelligently and elevate your productivity with smart features and intuitive design.</p>
+          <h2 className="text-4xl font-bold mb-4">Intelligent. Streamlined. Collaborative</h2>
+          <p className="opacity-80">Where AI meets productivity. Streamline tasks, calendars, and team communication in one powerful platform.</p>
         </div>
       </div>
     </div>
