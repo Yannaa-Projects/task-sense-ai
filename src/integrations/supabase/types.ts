@@ -9,72 +9,7 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      schedule: {
-        Row: {
-          created_at: string
-          day: string
-          end_time: string
-          id: number
-          last_updated_at: string | null
-          location: string | null
-          start_time: string
-          title: string
-          type: string | null
-        }
-        Insert: {
-          created_at?: string
-          day: string
-          end_time: string
-          id?: number
-          last_updated_at?: string | null
-          location?: string | null
-          start_time: string
-          title: string
-          type?: string | null
-        }
-        Update: {
-          created_at?: string
-          day?: string
-          end_time?: string
-          id?: number
-          last_updated_at?: string | null
-          location?: string | null
-          start_time?: string
-          title?: string
-          type?: string | null
-        }
-        Relationships: []
-      }
-      schedule_for_ops: {
-        Row: {
-          day: string | null
-          end_time: string | null
-          id: string
-          location: string | null
-          start_time: string | null
-          title: string | null
-          type: string | null
-        }
-        Insert: {
-          day?: string | null
-          end_time?: string | null
-          id?: string
-          location?: string | null
-          start_time?: string | null
-          title?: string | null
-          type?: string | null
-        }
-        Update: {
-          day?: string | null
-          end_time?: string | null
-          id?: string
-          location?: string | null
-          start_time?: string | null
-          title?: string | null
-          type?: string | null
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Views: {
       [_ in never]: never
