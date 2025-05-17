@@ -4,7 +4,10 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { AuthProvider } from "@/context/AuthContext";
+import PrivateRoute from "@/components/auth/PrivateRoute";
 import Index from "./pages/Index";
+import Auth from "./pages/Auth";
 import Tasks from "./pages/Tasks";
 import Calendar from "./pages/Calendar";
 import DailyPlan from "./pages/DailyPlan";
@@ -17,21 +20,33 @@ const queryClient = new QueryClient();
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/tasks" element={<Tasks />} />
-          <Route path="/calendar" element={<Calendar />} />
-          <Route path="/daily-plan" element={<DailyPlan />} />
-          <Route path="/messages" element={<Messages />} />
-          <Route path="/team" element={<Team />} />
-          <Route path="/settings" element={<Index />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
+      <AuthProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <Routes>
+            {/* Public routes */}
+            <Route path="/auth" element={<Auth />} />
+            
+            {/* Protected routes */}
+            <Route element={<PrivateRoute />}>
+              <Route path="/" element={<Index />} />
+              <Route path="/tasks" element={<Tasks />} />
+              <Route path="/calendar" element={<Calendar />} />
+              <Route path="/daily-plan" element={<DailyPlan />} />
+              <Route path="/messages" element={<Messages />} />
+            </Route>
+            
+            {/* Manager-only routes */}
+            <Route element={<PrivateRoute requiredRole="manager" />}>
+              <Route path="/team" element={<Team />} />
+            </Route>
+            
+            {/* 404 route */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </AuthProvider>
     </TooltipProvider>
   </QueryClientProvider>
 );
