@@ -19,7 +19,7 @@ interface TaskListProps {
   limit?: number;
   tasks: Task[];
   onTaskStatusChange: (taskId: string) => void;
-  onTaskEdit: (task: Task) => void;
+  onTaskEdit?: (task: Task) => void;
 }
 
 const TaskList = ({ limit, tasks, onTaskStatusChange, onTaskEdit }: TaskListProps) => {
@@ -83,14 +83,16 @@ const TaskList = ({ limit, tasks, onTaskStatusChange, onTaskEdit }: TaskListProp
             </div>
             
             <div className="flex gap-1">
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                className="h-8 w-8" 
-                onClick={() => onTaskEdit(task)}
-              >
-                <Edit className="h-4 w-4" />
-              </Button>
+              {onTaskEdit && (
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="h-8 w-8" 
+                  onClick={() => onTaskEdit(task)}
+                >
+                  <Edit className="h-4 w-4" />
+                </Button>
+              )}
               
               {task.completed && (
                 <Button variant="ghost" size="icon" className="h-8 w-8 text-green-600">

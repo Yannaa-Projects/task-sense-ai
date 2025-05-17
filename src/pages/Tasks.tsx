@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import Layout from "@/components/layouts/Layout";
@@ -47,7 +46,14 @@ const mapSupabaseTask = (task: SupabaseTask): Task => ({
 });
 
 // Convert our application Task to Supabase format
-const mapToSupabaseTask = (task: Task): Partial<SupabaseTask> => ({
+const mapToSupabaseTask = (task: Task): {
+  title: string;
+  description: string | null;
+  priority: string;
+  due_date: string;
+  completed: boolean;
+  assigned_to: string | null;
+} => ({
   title: task.title,
   description: task.description || null,
   priority: task.priority,
