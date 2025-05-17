@@ -1,9 +1,10 @@
 
 import { useState } from "react";
-import { CheckCheck, Clock, Edit, ListTodo } from "lucide-react";
+import { CheckCheck, Clock, Edit, ListTodo, History } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
+import TaskHistoryDialog from "./TaskHistoryDialog";
 
 interface Task {
   id: string;
@@ -24,6 +25,13 @@ interface TaskListProps {
 
 const TaskList = ({ limit, tasks, onTaskStatusChange, onTaskEdit }: TaskListProps) => {
   const displayedTasks = limit ? tasks.slice(0, limit) : tasks;
+  const [historyDialogOpen, setHistoryDialogOpen] = useState(false);
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+
+  const handleViewHistory = (taskId: string) => {
+    setSelectedTaskId(taskId);
+    setHistoryDialogOpen(true);
+  };
 
   return (
     <div className="space-y-3">
@@ -94,6 +102,15 @@ const TaskList = ({ limit, tasks, onTaskStatusChange, onTaskEdit }: TaskListProp
                 </Button>
               )}
               
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="h-8 w-8" 
+                onClick={() => handleViewHistory(task.id)}
+              >
+                <History className="h-4 w-4" />
+              </Button>
+              
               {task.completed && (
                 <Button variant="ghost" size="icon" className="h-8 w-8 text-green-600">
                   <CheckCheck className="h-4 w-4" />
@@ -103,6 +120,12 @@ const TaskList = ({ limit, tasks, onTaskStatusChange, onTaskEdit }: TaskListProp
           </div>
         ))
       )}
+
+      <TaskHistoryDialog 
+        open={historyDialogOpen}
+        onOpenChange={setHistoryDialogOpen}
+        taskId={selectedTaskId}
+      />
     </div>
   );
 };

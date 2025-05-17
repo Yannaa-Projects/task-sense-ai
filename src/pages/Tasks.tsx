@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import Layout from "@/components/layouts/Layout";
@@ -32,6 +33,13 @@ interface SupabaseTask {
   created_at: string;
   updated_at: string;
   user_id: string | null;
+}
+
+interface PriorityLog {
+  task_id: string;
+  previous_priority: string;
+  new_priority: string;
+  changed_at: string;
 }
 
 // Convert Supabase task to our application Task format
@@ -104,6 +112,28 @@ const Tasks = () => {
     }
   });
 
+  // Log priority change mutation
+  const logPriorityChangeMutation = useMutation({
+    mutationFn: async (log: {
+      task_id: string;
+      task_title: string;
+      previous_priority: string;
+      new_priority: string;
+    }) => {
+      const { error } = await supabase
+        .from("task_priority_logs")
+        .insert({
+          task_id: log.task_id,
+          task_title: log.task_title,
+          previous_priority: log.previous_priority,
+          new_priority: log.new_priority,
+        });
+      
+      if (error) throw new Error(error.message);
+      return true;
+    }
+  });
+
   // Update task mutation
   const updateTaskMutation = useMutation({
     mutationFn: async (task: Task) => {
@@ -145,10 +175,13 @@ const Tasks = () => {
     if (!taskToUpdate) return;
 
     const completed = !taskToUpdate.completed;
+    const previousPriority = taskToUpdate.priority;
+    const newPriority = completed ? "completed" : previousPriority;
+    
     const updatedTask = {
       ...taskToUpdate,
       completed,
-      priority: completed ? "completed" : taskToUpdate.priority
+      priority: newPriority
     };
 
     updateTaskMutation.mutate(updatedTask, {
@@ -157,6 +190,16 @@ const Tasks = () => {
           title: completed ? "Task Completed" : "Task Reopened",
           description: `"${updatedTask.title}" has been ${completed ? "marked as complete" : "reopened"}`,
         });
+
+        // Log priority change if it happened due to status toggle
+        if (previousPriority !== newPriority) {
+          logPriorityChangeMutation.mutate({
+            task_id: taskToUpdate.id,
+            task_title: taskToUpdate.title,
+            previous_priority: previousPriority,
+            new_priority: newPriority
+          });
+        }
       },
       onError: (error) => {
         toast({
@@ -174,12 +217,28 @@ const Tasks = () => {
   };
 
   const handleTaskUpdate = (updatedTask: Task) => {
+    const originalTask = tasks.find(task => task.id === updatedTask.id);
+    if (!originalTask) return;
+
+    // Check if priority has changed
+    const priorityChanged = originalTask.priority !== updatedTask.priority;
+    
     updateTaskMutation.mutate(updatedTask, {
       onSuccess: () => {
         toast({
           title: "Task Updated",
           description: `"${updatedTask.title}" has been updated`,
         });
+
+        // Log priority change if it happened
+        if (priorityChanged) {
+          logPriorityChangeMutation.mutate({
+            task_id: updatedTask.id,
+            task_title: updatedTask.title,
+            previous_priority: originalTask.priority,
+            new_priority: updatedTask.priority
+          });
+        }
       },
       onError: (error) => {
         toast({
