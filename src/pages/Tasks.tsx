@@ -4,13 +4,20 @@ import Layout from "@/components/layouts/Layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Filter } from "lucide-react";
+import { Filter, Tag as TagIcon, X } from "lucide-react";
 import TaskList from "@/components/tasks/TaskList";
 import TaskFormDialog from "@/components/tasks/TaskFormDialog";
 import TaskEditDialog from "@/components/tasks/TaskEditDialog";
 import TaskHistoryDialog from "@/components/tasks/TaskHistoryDialog";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface Task {
   id: string;
@@ -20,6 +27,7 @@ interface Task {
   dueDate: string;
   completed: boolean;
   assignedTo?: string;
+  tags?: string[];
 }
 
 interface SupabaseTask {
@@ -33,6 +41,7 @@ interface SupabaseTask {
   created_at: string;
   updated_at: string;
   user_id: string | null;
+  tags: string[] | null;
 }
 
 interface PriorityLog {
@@ -50,7 +59,8 @@ const mapSupabaseTask = (task: SupabaseTask): Task => ({
   priority: task.priority as "low" | "medium" | "high" | "completed",
   dueDate: task.due_date,
   completed: task.completed,
-  assignedTo: task.assigned_to || undefined
+  assignedTo: task.assigned_to || undefined,
+  tags: task.tags || []
 });
 
 // Convert our application Task to Supabase format
@@ -61,14 +71,19 @@ const mapToSupabaseTask = (task: Task): {
   due_date: string;
   completed: boolean;
   assigned_to: string | null;
+  tags: string[] | null;
 } => ({
   title: task.title,
   description: task.description || null,
   priority: task.priority,
   due_date: task.dueDate,
   completed: task.completed,
-  assigned_to: task.assignedTo || null
+  assigned_to: task.assignedTo || null,
+  tags: task.tags || null
 });
+
+// Predefined tag categories - these can be extended by the user
+const DEFAULT_TAGS = ["meeting", "personal", "work", "urgent", "followup"];
 
 const Tasks = () => {
   const { toast } = useToast();
@@ -77,6 +92,9 @@ const Tasks = () => {
   const [activeTab, setActiveTab] = useState("all");
   const [taskToEdit, setTaskToEdit] = useState<Task | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [availableTags, setAvailableTags] = useState<string[]>(DEFAULT_TAGS);
 
   // Fetch tasks from Supabase
   const { data: tasks = [], isLoading } = useQuery({
@@ -91,7 +109,20 @@ const Tasks = () => {
         throw new Error(error.message);
       }
 
-      return (data as SupabaseTask[]).map(mapSupabaseTask);
+      // Extract unique tags from all tasks to build available tags list
+      const tasksData = (data as SupabaseTask[]).map(mapSupabaseTask);
+      
+      // Update available tags by including all tags found in tasks
+      const allTags = new Set<string>(DEFAULT_TAGS);
+      tasksData.forEach(task => {
+        if (task.tags) {
+          task.tags.forEach(tag => allTags.add(tag));
+        }
+      });
+      
+      setAvailableTags(Array.from(allTags));
+      
+      return tasksData;
     }
   });
 
@@ -248,20 +279,41 @@ const Tasks = () => {
   };
 
   const getFilteredTasks = (tabName: string) => {
+    let filteredTasks = tasks;
+
+    // First filter by tab
     switch (tabName) {
       case "mine":
-        return tasks.filter(task => !task.completed && task.assignedTo === "Alex Johnson");
+        filteredTasks = tasks.filter(task => !task.completed && task.assignedTo === "Alex Johnson");
+        break;
       case "overdue":
-        return tasks.filter(task => 
+        filteredTasks = tasks.filter(task => 
           !task.completed && 
           new Date(task.dueDate) < new Date()
         );
+        break;
       case "completed":
-        return tasks.filter(task => task.completed);
+        filteredTasks = tasks.filter(task => task.completed);
+        break;
       case "all":
       default:
-        return tasks;
+        // Keep all tasks
+        break;
     }
+    
+    return filteredTasks;
+  };
+  
+  const toggleTagFilter = (tag: string) => {
+    setSelectedTags(prev => 
+      prev.includes(tag) 
+        ? prev.filter(t => t !== tag) 
+        : [...prev, tag]
+    );
+  };
+  
+  const clearTagFilters = () => {
+    setSelectedTags([]);
   };
 
   return (
@@ -274,10 +326,69 @@ const Tasks = () => {
           </div>
           <div className="mt-4 sm:mt-0 flex gap-2">
             <TaskFormDialog onTaskCreated={handleTaskCreate} />
-            <Button variant="outline">
-              <Filter className="mr-2 h-4 w-4" />
-              Filter
-            </Button>
+            
+            <Popover open={filterOpen} onOpenChange={setFilterOpen}>
+              <PopoverTrigger asChild>
+                <Button variant={selectedTags.length > 0 ? "default" : "outline"}>
+                  <Filter className="mr-2 h-4 w-4" />
+                  Filter
+                  {selectedTags.length > 0 && (
+                    <Badge variant="secondary" className="ml-1">
+                      {selectedTags.length}
+                    </Badge>
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-80 p-4">
+                <div className="space-y-4">
+                  <h4 className="font-medium">Filter by Tags</h4>
+                  
+                  {selectedTags.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mb-2">
+                      <div className="flex flex-wrap gap-1">
+                        {selectedTags.map(tag => (
+                          <Badge key={tag} className="flex items-center gap-1">
+                            <TagIcon className="h-3 w-3" />
+                            {tag}
+                            <X 
+                              className="h-3 w-3 cursor-pointer" 
+                              onClick={() => toggleTagFilter(tag)}
+                            />
+                          </Badge>
+                        ))}
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="h-7"
+                          onClick={clearTagFilters}
+                        >
+                          Clear all
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                  
+                  <ScrollArea className="h-[200px]">
+                    <div className="space-y-2">
+                      {availableTags.map(tag => (
+                        <div 
+                          key={tag} 
+                          className={cn(
+                            "flex items-center gap-2 px-3 py-2 rounded-md cursor-pointer hover:bg-slate-100",
+                            selectedTags.includes(tag) && "bg-slate-100"
+                          )}
+                          onClick={() => toggleTagFilter(tag)}
+                        >
+                          <TagIcon className="h-4 w-4" />
+                          <span>{tag}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </ScrollArea>
+                </div>
+              </PopoverContent>
+            </Popover>
+            
           </div>
         </div>
         
@@ -299,6 +410,7 @@ const Tasks = () => {
                   tasks={getFilteredTasks("all")}
                   onTaskStatusChange={handleTaskStatusToggle}
                   onTaskEdit={handleTaskEdit}
+                  selectedTags={selectedTags}
                 />
               </CardContent>
             </Card>
@@ -314,6 +426,7 @@ const Tasks = () => {
                   tasks={getFilteredTasks("mine")}
                   onTaskStatusChange={handleTaskStatusToggle}
                   onTaskEdit={handleTaskEdit}
+                  selectedTags={selectedTags}
                 />
               </CardContent>
             </Card>
@@ -329,6 +442,7 @@ const Tasks = () => {
                   tasks={getFilteredTasks("overdue")}
                   onTaskStatusChange={handleTaskStatusToggle}
                   onTaskEdit={handleTaskEdit}
+                  selectedTags={selectedTags}
                 />
               </CardContent>
             </Card>
@@ -344,6 +458,7 @@ const Tasks = () => {
                   tasks={getFilteredTasks("completed")}
                   onTaskStatusChange={handleTaskStatusToggle}
                   onTaskEdit={handleTaskEdit}
+                  selectedTags={selectedTags}
                 />
               </CardContent>
             </Card>

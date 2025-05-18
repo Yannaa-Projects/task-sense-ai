@@ -1,13 +1,17 @@
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
+import { Calendar, User, Tag as TagIcon, X } from "lucide-react";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Calendar, User } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+
+// Predefined tag suggestions
+const TAG_SUGGESTIONS = ["meeting", "personal", "work", "urgent", "followup"];
 
 interface Task {
   id: string;
@@ -17,6 +21,7 @@ interface Task {
   dueDate: string;
   completed: boolean;
   assignedTo?: string;
+  tags?: string[];
 }
 
 interface TaskEditDialogProps {
@@ -27,39 +32,65 @@ interface TaskEditDialogProps {
 }
 
 const TaskEditDialog = ({ open, onOpenChange, task, onTaskUpdated }: TaskEditDialogProps) => {
-  const form = useForm({
+  const [tags, setTags] = useState<string[]>([]);
+  const [tagInput, setTagInput] = useState("");
+  
+  const form = useForm<Task>({
     defaultValues: {
+      id: "",
       title: "",
       description: "",
       priority: "medium",
-      dueDate: "",
-      assignedTo: ""
-    },
+      dueDate: new Date().toISOString().split('T')[0],
+      completed: false,
+      assignedTo: "",
+      tags: []
+    }
   });
 
-  // Update form values when task changes
   useEffect(() => {
     if (task) {
       form.reset({
+        id: task.id,
         title: task.title,
-        description: task.description || "",
-        priority: task.priority === "completed" ? (task.completed ? "high" : "medium") : task.priority,
+        description: task.description,
+        priority: task.priority,
         dueDate: task.dueDate,
+        completed: task.completed,
         assignedTo: task.assignedTo || ""
       });
+      setTags(task.tags || []);
     }
   }, [task, form]);
 
-  const onSubmit = (data: any) => {
-    if (!task) return;
-    
-    const updatedTask = {
-      ...task,
-      ...data,
-    };
-    
-    onTaskUpdated(updatedTask);
-    onOpenChange(false);
+  const onSubmit = (data: Task) => {
+    if (task) {
+      const updatedTask = {
+        ...data,
+        tags
+      };
+      onTaskUpdated(updatedTask);
+      onOpenChange(false);
+    }
+  };
+  
+  const addTag = (tag: string) => {
+    tag = tag.trim().toLowerCase();
+    if (tag && !tags.includes(tag)) {
+      setTags([...tags, tag]);
+      setTagInput("");
+    }
+  };
+  
+  const removeTag = (tagToRemove: string) => {
+    setTags(tags.filter(tag => tag !== tagToRemove));
+  };
+  
+  const handleTagInputKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && tagInput) {
+      e.preventDefault();
+      addTag(tagInput);
+    }
   };
 
   if (!task) return null;
@@ -79,7 +110,7 @@ const TaskEditDialog = ({ open, onOpenChange, task, onTaskUpdated }: TaskEditDia
                 <FormItem>
                   <FormLabel>Title</FormLabel>
                   <FormControl>
-                    <Input placeholder="Enter task title" {...field} />
+                    <Input {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -94,7 +125,6 @@ const TaskEditDialog = ({ open, onOpenChange, task, onTaskUpdated }: TaskEditDia
                   <FormLabel>Description</FormLabel>
                   <FormControl>
                     <Textarea 
-                      placeholder="Enter task description" 
                       className="min-h-[100px]" 
                       {...field} 
                     />
@@ -113,18 +143,18 @@ const TaskEditDialog = ({ open, onOpenChange, task, onTaskUpdated }: TaskEditDia
                     <FormLabel>Priority</FormLabel>
                     <Select 
                       onValueChange={field.onChange} 
-                      defaultValue={field.value}
                       value={field.value}
                     >
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Select priority" />
+                          <SelectValue />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
                         <SelectItem value="low">Low</SelectItem>
                         <SelectItem value="medium">Medium</SelectItem>
                         <SelectItem value="high">High</SelectItem>
+                        <SelectItem value="completed">Completed</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -166,6 +196,75 @@ const TaskEditDialog = ({ open, onOpenChange, task, onTaskUpdated }: TaskEditDia
                 </FormItem>
               )}
             />
+            
+            <FormField
+              control={form.control}
+              name="completed"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                  <FormControl>
+                    <input
+                      type="checkbox"
+                      checked={field.value}
+                      onChange={field.onChange}
+                      className="h-4 w-4 text-primary focus:ring-primary"
+                    />
+                  </FormControl>
+                  <div className="space-y-1 leading-none">
+                    <FormLabel>
+                      Mark as Completed
+                    </FormLabel>
+                  </div>
+                </FormItem>
+              )}
+            />
+            
+            {/* Tags field */}
+            <div className="space-y-2">
+              <FormLabel>Tags</FormLabel>
+              <div className="flex flex-wrap gap-2 mb-2">
+                {tags.map(tag => (
+                  <Badge key={tag} className="flex items-center gap-1">
+                    <TagIcon className="h-3 w-3" />
+                    {tag}
+                    <X 
+                      className="h-3 w-3 ml-1 cursor-pointer" 
+                      onClick={() => removeTag(tag)}
+                    />
+                  </Badge>
+                ))}
+              </div>
+              <div className="flex items-center">
+                <TagIcon className="mr-2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Add a tag and press Enter (e.g. #meeting)"
+                  value={tagInput}
+                  onChange={(e) => setTagInput(e.target.value)}
+                  onKeyDown={handleTagInputKeyDown}
+                />
+                <Button 
+                  type="button" 
+                  size="sm" 
+                  variant="ghost" 
+                  className="ml-2" 
+                  onClick={() => addTag(tagInput)}
+                >
+                  Add
+                </Button>
+              </div>
+              <div className="flex flex-wrap gap-1 mt-2">
+                {TAG_SUGGESTIONS.map(tag => (
+                  <Badge 
+                    key={tag} 
+                    variant="outline" 
+                    className="cursor-pointer hover:bg-secondary"
+                    onClick={() => addTag(tag)}
+                  >
+                    {tag}
+                  </Badge>
+                ))}
+              </div>
+            </div>
             
             <DialogFooter>
               <Button variant="outline" type="button" onClick={() => onOpenChange(false)}>

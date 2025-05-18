@@ -1,10 +1,11 @@
 
 import { useState } from "react";
-import { CheckCheck, Clock, Edit, ListTodo, History } from "lucide-react";
+import { CheckCheck, Clock, Edit, ListTodo, History, Tag as TagIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import TaskHistoryDialog from "./TaskHistoryDialog";
+import { Badge } from "@/components/ui/badge";
 
 interface Task {
   id: string;
@@ -14,6 +15,7 @@ interface Task {
   dueDate: string;
   completed: boolean;
   assignedTo?: string;
+  tags?: string[]; // Add tags property
 }
 
 interface TaskListProps {
@@ -21,10 +23,19 @@ interface TaskListProps {
   tasks: Task[];
   onTaskStatusChange: (taskId: string) => void;
   onTaskEdit?: (task: Task) => void;
+  selectedTags?: string[]; // Add selected tags for filtering
 }
 
-const TaskList = ({ limit, tasks, onTaskStatusChange, onTaskEdit }: TaskListProps) => {
-  const displayedTasks = limit ? tasks.slice(0, limit) : tasks;
+const TaskList = ({ limit, tasks, onTaskStatusChange, onTaskEdit, selectedTags }: TaskListProps) => {
+  // Filter tasks based on selected tags if provided
+  const filteredTasks = selectedTags && selectedTags.length > 0
+    ? tasks.filter(task => {
+        if (!task.tags) return false;
+        return selectedTags.some(tag => task.tags?.includes(tag));
+      })
+    : tasks;
+    
+  const displayedTasks = limit ? filteredTasks.slice(0, limit) : filteredTasks;
   const [historyDialogOpen, setHistoryDialogOpen] = useState(false);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
 
@@ -77,6 +88,18 @@ const TaskList = ({ limit, tasks, onTaskStatusChange, onTaskEdit }: TaskListProp
               <p className="text-sm text-muted-foreground mb-2">
                 {task.description}
               </p>
+              
+              {/* Display task tags */}
+              {task.tags && task.tags.length > 0 && (
+                <div className="flex flex-wrap gap-2 mb-2">
+                  {task.tags.map(tag => (
+                    <Badge key={tag} variant="outline" className="flex items-center gap-1 bg-purple-50">
+                      <TagIcon className="h-3 w-3" />
+                      {tag}
+                    </Badge>
+                  ))}
+                </div>
+              )}
               
               <div className="flex items-center gap-4 text-xs text-muted-foreground">
                 <span className="flex items-center gap-1">
