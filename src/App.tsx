@@ -33,10 +33,6 @@ const App = () => (
               <Route path="/calendar" element={<Calendar />} />
               <Route path="/daily-plan" element={<DailyPlan />} />
               <Route path="/messages" element={<Messages />} />
-            </Route>
-            
-            {/* Manager-only routes */}
-            <Route element={<PrivateRoute requiredRole="manager" />}>
               <Route path="/team" element={<Team />} />
             </Route>
             
