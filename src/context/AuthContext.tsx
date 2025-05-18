@@ -139,19 +139,41 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const signOut = async () => {
     try {
       setAuthState(prev => ({ ...prev, isLoading: true }));
-      const { error } = await supabase.auth.signOut();
+      
+      // First update the UI state to improve perceived performance
+      setAuthState({
+        user: null,
+        profile: null,
+        isLoading: true,
+        isAuthenticated: false,
+      });
+      
+      // Set timeout to prevent the signOut from hanging indefinitely
+      const timeoutPromise = new Promise<{error: Error}>((_, reject) => {
+        setTimeout(() => {
+          reject({error: new Error('Sign out timed out')});
+        }, 3000); // 3 second timeout
+      });
+      
+      // Race the signOut against the timeout
+      const { error } = await Promise.race([
+        supabase.auth.signOut(),
+        timeoutPromise
+      ]);
       
       if (error) {
-        toast.error(error.message || 'Failed to sign out');
-        setAuthState(prev => ({ ...prev, isLoading: false }));
-        throw error;
+        console.error('Sign out error:', error);
+        toast.error('Error during sign out. Please try again.');
+      } else {
+        toast.success('Signed out successfully');
       }
       
-      // Auth state will be updated by the listener
-    } catch (error) {
+      // Ensure loading state is turned off regardless of outcome
       setAuthState(prev => ({ ...prev, isLoading: false }));
+    } catch (error) {
       console.error('Sign out error:', error);
-      throw error;
+      toast.error('Error during sign out. Please try again.');
+      setAuthState(prev => ({ ...prev, isLoading: false }));
     }
   };
 
