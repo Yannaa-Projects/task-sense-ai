@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import Layout from "@/components/layouts/Layout";
@@ -302,6 +303,14 @@ const Tasks = () => {
         break;
     }
     
+    // Then filter by selected tags if any
+    if (selectedTags.length > 0) {
+      filteredTasks = filteredTasks.filter(task => {
+        if (!task.tags || task.tags.length === 0) return false;
+        return selectedTags.some(tag => task.tags?.includes(tag));
+      });
+    }
+    
     return filteredTasks;
   };
   
@@ -411,7 +420,6 @@ const Tasks = () => {
                   tasks={getFilteredTasks("all")}
                   onTaskStatusChange={handleTaskStatusToggle}
                   onTaskEdit={handleTaskEdit}
-                  selectedTags={selectedTags}
                 />
               </CardContent>
             </Card>
@@ -427,7 +435,6 @@ const Tasks = () => {
                   tasks={getFilteredTasks("mine")}
                   onTaskStatusChange={handleTaskStatusToggle}
                   onTaskEdit={handleTaskEdit}
-                  selectedTags={selectedTags}
                 />
               </CardContent>
             </Card>
@@ -443,7 +450,6 @@ const Tasks = () => {
                   tasks={getFilteredTasks("overdue")}
                   onTaskStatusChange={handleTaskStatusToggle}
                   onTaskEdit={handleTaskEdit}
-                  selectedTags={selectedTags}
                 />
               </CardContent>
             </Card>
@@ -459,7 +465,6 @@ const Tasks = () => {
                   tasks={getFilteredTasks("completed")}
                   onTaskStatusChange={handleTaskStatusToggle}
                   onTaskEdit={handleTaskEdit}
-                  selectedTags={selectedTags}
                 />
               </CardContent>
             </Card>

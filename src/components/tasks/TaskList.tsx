@@ -15,7 +15,7 @@ interface Task {
   dueDate: string;
   completed: boolean;
   assignedTo?: string;
-  tags?: string[]; // Add tags property
+  tags?: string[];
 }
 
 interface TaskListProps {
@@ -23,19 +23,12 @@ interface TaskListProps {
   tasks: Task[];
   onTaskStatusChange: (taskId: string) => void;
   onTaskEdit?: (task: Task) => void;
-  selectedTags?: string[]; // Add selected tags for filtering
+  selectedTags?: string[];
 }
 
 const TaskList = ({ limit, tasks, onTaskStatusChange, onTaskEdit, selectedTags }: TaskListProps) => {
-  // Filter tasks based on selected tags if provided
-  const filteredTasks = selectedTags && selectedTags.length > 0
-    ? tasks.filter(task => {
-        if (!task.tags) return false;
-        return selectedTags.some(tag => task.tags?.includes(tag));
-      })
-    : tasks;
-    
-  const displayedTasks = limit ? filteredTasks.slice(0, limit) : filteredTasks;
+  // Display tasks based on limit if provided
+  const displayedTasks = limit ? tasks.slice(0, limit) : tasks;
   const [historyDialogOpen, setHistoryDialogOpen] = useState(false);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
 
