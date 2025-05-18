@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import Layout from "@/components/layouts/Layout";
@@ -102,15 +101,19 @@ const Tasks = () => {
   const { data: tasks = [], isLoading } = useQuery({
     queryKey: ["tasks"],
     queryFn: async () => {
+      console.log("Fetching tasks from Supabase");
       const { data, error } = await supabase
         .from("tasks")
         .select("*")
         .order("created_at", { ascending: false });
       
       if (error) {
+        console.error("Error fetching tasks:", error);
         throw new Error(error.message);
       }
 
+      console.log("Tasks data from Supabase:", data);
+      
       // Extract unique tags from all tasks to build available tags list
       const tasksData = (data as SupabaseTask[]).map(mapSupabaseTask);
       
@@ -131,17 +134,28 @@ const Tasks = () => {
   // Create task mutation
   const createTaskMutation = useMutation({
     mutationFn: async (newTask: Task) => {
+      console.log("Creating task in Supabase:", newTask);
+      const supabaseTask = mapToSupabaseTask(newTask);
+      
       const { data, error } = await supabase
         .from("tasks")
-        .insert(mapToSupabaseTask(newTask))
+        .insert(supabaseTask)
         .select("*")
         .single();
       
-      if (error) throw new Error(error.message);
+      if (error) {
+        console.error("Error creating task:", error);
+        throw new Error(error.message);
+      }
+      
+      console.log("Task created successfully:", data);
       return mapSupabaseTask(data as SupabaseTask);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["tasks"] });
+    },
+    onError: (error) => {
+      console.error("Mutation error:", error);
     }
   });
 
@@ -181,14 +195,17 @@ const Tasks = () => {
   });
 
   const handleTaskCreate = (newTask: Task) => {
+    console.log("handleTaskCreate called with:", newTask);
     createTaskMutation.mutate(newTask, {
       onSuccess: (createdTask) => {
+        console.log("Task created successfully:", createdTask);
         toast({
           title: "Task Created",
           description: `"${createdTask.title}" has been added to your tasks`,
         });
       },
       onError: (error) => {
+        console.error("Error creating task:", error);
         toast({
           title: "Error",
           description: error.message,

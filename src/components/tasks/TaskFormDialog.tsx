@@ -33,6 +33,7 @@ const TaskFormDialog = ({ onTaskCreated }: TaskFormProps) => {
   });
 
   const onSubmit = (data: any) => {
+    // Create the new task with all required fields
     const newTask = {
       id: Date.now().toString(), // For demo, use timestamp as ID
       ...data,
@@ -40,11 +41,17 @@ const TaskFormDialog = ({ onTaskCreated }: TaskFormProps) => {
       tags: tags.length > 0 ? tags : undefined
     };
     
+    // Pass the task to the parent component
     onTaskCreated(newTask);
+    
+    // Reset the form and state
     form.reset();
     setTags([]);
     setTagInput("");
     setOpen(false);
+    
+    // Add console logs to debug
+    console.log("Task submitted:", newTask);
   };
   
   const addTag = (tag: string) => {
